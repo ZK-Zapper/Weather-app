@@ -2,18 +2,37 @@ import streamlit as st
 import plotly.express as px
 from backend import get_data
 
-
 st.title("Weather Forecast for the Next Days")
 place = st.text_input("Place: ")
 days = st.slider("Forecast Days", min_value=1, max_value=5,
                  help="Select the number of forecasted days")
-option = st.selectbox("Select data to view",
-                      ("Temprature", "Sky"))
-st.subheader(f"{option} for the next {days} days  in {place}")
 
-data = get_data(place, days, option)
+option = st.selectbox("Select data to view", ("Temperature", "Sky"))
+st.subheader(f"{option} for the next {days} days in {place}")
 
-d, t = get_data(days)
+if place:
+    filtered_data = get_data(place, days)
 
-figure = px.scatter(x=d, y=t, labels={"x": "Date", "y": "Temperature (C)"})
-st.plotly_chart(figure)
+    if option == "Temperature":
+        temperatures = [dict["main"]["temp"] for dict in filtered_data]
+        dates = [dict["dt_txt"] for dict in filtered_data]
+        figure = px.line(x=dates, y=temperatures,
+                         labels={"x": "Date", "y": "Temperature(C)"})
+        st.plotly_chart(figure)
+
+    if option == "Sky":
+        images = {"Clear": "Images/clear.png", "Clouds": "Images/cloud.png",
+                  "Rain": "Images/rain.png", "Snow": "Images/snow.png"}
+        sky_condition = [dict["weather"][0]["main"] for dict in filtered_data]
+        image_paths = [images[condition] for condition in sky_condition]
+        columns_per_row = 6
+
+        rows = [image_paths[i:i + columns_per_row] for i in
+                range(0, len(image_paths), columns_per_row)]
+
+        for row in rows:
+            cols = st.columns(columns_per_row)
+            for col, image in zip(cols, row):
+                col.image(image, width=115)
+
+        print(sky_condition)
